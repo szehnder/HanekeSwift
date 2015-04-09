@@ -23,7 +23,7 @@ extension HanekeGlobals {
     public struct Cache {
         
         public static let OriginalFormatName = "original"
-
+        
         public enum ErrorCode : Int {
             case ObjectNotFound = -100
             case FormatNotFound = -101
@@ -37,7 +37,7 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     
     let name : String
     
-    let memoryWarningObserver : NSObjectProtocol!
+    var memoryWarningObserver : NSObjectProtocol? = nil
     
     public init(name : String) {
         self.name = name
@@ -57,8 +57,10 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     }
     
     deinit {
-        let notifications = NSNotificationCenter.defaultCenter()
-        notifications.removeObserver(memoryWarningObserver, name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
+        if let memoryWarningObserver = memoryWarningObserver {
+            let notifications = NSNotificationCenter.defaultCenter()
+            notifications.removeObserver(memoryWarningObserver, name: UIApplicationDidReceiveMemoryWarningNotification, object: nil)
+        }
     }
     
     public func set(#value : T, key: String, formatName : String = HanekeGlobals.Cache.OriginalFormatName, success succeed : ((T) -> ())? = nil) {
@@ -81,17 +83,17 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
             if let wrapper = memoryCache.objectForKey(key) as? ObjectWrapper {
                 if let result = wrapper.value as? T {
                     fetch.succeed(result)
-                    diskCache.updateAccessDate(dataFromValue(result, format: format), key: key)
+                    diskCache.updateAccessDate(self.dataFromValue(result, format: format), key: key)
                     return fetch
                 }
             }
-
+            
             self.fetchFromDiskCache(diskCache, key: key, memoryCache: memoryCache, failure: { error in
                 fetch.fail(error)
-            }) { value in
-                fetch.succeed(value)
+                }) { value in
+                    fetch.succeed(value)
             }
-
+            
         } else {
             let localizedFormat = NSLocalizedString("Format %@ not found", comment: "Error description")
             let description = String(format:localizedFormat, formatName)
@@ -112,18 +114,18 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
             if let (format, _, _) = self.formats[formatName] {
                 self.fetchAndSet(fetcher, format: format, failure: {error in
                     fetch.fail(error)
-                }) {value in
-                    fetch.succeed(value)
+                    }) {value in
+                        fetch.succeed(value)
                 }
             }
             
             // Unreachable code. Formats can't be removed from Cache.
-        }) { value in
-            fetch.succeed(value)
+            }) { value in
+                fetch.succeed(value)
         }
         return fetch
     }
-
+    
     public func remove(#key : String, formatName : String = HanekeGlobals.Cache.OriginalFormatName) {
         if let (_, memoryCache, diskCache) = self.formats[formatName] {
             memoryCache.removeObjectForKey(key)
@@ -147,14 +149,14 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     }
     
     // MARK: Formats
-
+    
     var formats : [String : (Format<T>, NSCache, DiskCache)] = [:]
     
     public func addFormat(format : Format<T>) {
         let name = format.name
         let formatPath = self.formatPath(formatName: name)
         let memoryCache = NSCache()
-        let diskCache = DiskCache(path: formatPath, capacity : format.diskCapacity)
+        let diskCache = DiskCache(path: formatPath, capacity : Int(format.diskCapacity))
         self.formats[name] = (format, memoryCache, diskCache)
     }
     
@@ -164,7 +166,7 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
         let basePath = DiskCache.basePath()
         let cachePath = basePath.stringByAppendingPathComponent(self.name)
         return cachePath
-    }()
+        }()
     
     func formatPath(#formatName : String) -> String {
         let formatPath = self.cachePath.stringByAppendingPathComponent(formatName)
@@ -197,26 +199,26 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
                     block(error)
                 }
             }
-        }) { data in
-            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), {
-                var value = T.convertFromData(data)
-                if let value = value {
-                    let descompressedValue = self.decompressedImageIfNeeded(value)
-                    dispatch_async(dispatch_get_main_queue(), {
-                        succeed(descompressedValue)
-                        let wrapper = ObjectWrapper(value: descompressedValue)
-                        memoryCache.setObject(wrapper, forKey: key)
-                    })
-                }
-            })
+            }) { data in
+                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), {
+                    var value = T.convertFromData(data)
+                    if let value = value {
+                        let descompressedValue = self.decompressedImageIfNeeded(value)
+                        dispatch_async(dispatch_get_main_queue(), {
+                            succeed(descompressedValue)
+                            let wrapper = ObjectWrapper(value: descompressedValue)
+                            memoryCache.setObject(wrapper, forKey: key)
+                        })
+                    }
+                })
         }
     }
     
     private func fetchAndSet(fetcher : Fetcher<T>, format : Format<T>, failure fail : ((NSError?) -> ())?, success succeed : (T) -> ()) {
         fetcher.fetch(failure: { error in
             let _ = fail?(error)
-        }) { value in
-            self.set(value: value, key: fetcher.key, formatName: format.name, success: succeed)
+            }) { value in
+                self.set(value: value, key: fetcher.key, formatName: format.name, success: succeed)
         }
     }
     
@@ -264,7 +266,7 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     // MARK: Convenience fetch
     // Ideally we would put each of these in the respective fetcher file as a Cache extension. Unfortunately, this fails to link when using the framework in a project as of Xcode 6.1.
     
-    public func fetch(#key : String, value getValue : @autoclosure () -> T.Result, formatName : String = HanekeGlobals.Cache.OriginalFormatName, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
+    public func fetch(#key : String, @autoclosure(escaping) value getValue : () -> T.Result, formatName : String = HanekeGlobals.Cache.OriginalFormatName, success succeed : Fetch<T>.Succeeder? = nil) -> Fetch<T> {
         let fetcher = SimpleFetcher<T>(key: key, value: getValue)
         return self.fetch(fetcher: fetcher, formatName: formatName, success: succeed)
     }
