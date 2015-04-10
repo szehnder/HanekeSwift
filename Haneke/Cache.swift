@@ -156,7 +156,7 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
         let name = format.name
         let formatPath = self.formatPath(formatName: name)
         let memoryCache = NSCache()
-        let diskCache = DiskCache(path: formatPath, capacity : Int(format.diskCapacity))
+        let diskCache = DiskCache(path: formatPath, capacity : format.diskCapacity)
         self.formats[name] = (format, memoryCache, diskCache)
     }
     
