@@ -17,7 +17,7 @@ public struct HanekeGlobals {
 public struct Shared {
     
     public static var imageCache : Cache<UIImage> {
-        struct Static {
+         struct Static {
             static let name = "shared-images"
             static let cache = Cache<UIImage>(name: name)
         }
@@ -31,7 +31,7 @@ public struct Shared {
         }
         return Static.cache
     }
-    
+
     public static var stringCache : Cache<String> {
         struct Static {
             static let name = "shared-strings"
@@ -49,19 +49,7 @@ public struct Shared {
     }
 }
 
-public func errorWithCode(code : Int, #description : String) -> NSError {
+public func errorWithCode(code : Int, description : String) -> NSError {
     let userInfo = [NSLocalizedDescriptionKey: description]
     return NSError(domain: HanekeGlobals.Domain, code: code, userInfo: userInfo)
-}
-
-public struct Log {
-    
-    public static func error(message : String, _ error : NSError? = nil) {
-        if let error = error {
-            NSLog("%@ with error %@", message, error);
-        } else {
-            NSLog("%@", message)
-        }
-    }
-    
 }

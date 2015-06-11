@@ -77,7 +77,7 @@ class JSONDataTests: XCTestCase {
     
     func testConvertFromData_WithArrayData() {
         let json = [self.name]
-        let data = NSJSONSerialization.dataWithJSONObject(json, options: NSJSONWritingOptions.allZeros, error: nil)!
+        let data = try! NSJSONSerialization.dataWithJSONObject(json, options: NSJSONWritingOptions())
         
         let result = JSON.convertFromData(data)!
         
@@ -92,7 +92,7 @@ class JSONDataTests: XCTestCase {
     
     func testConvertFromData_WithDictionaryData() {
         let json = ["test": self.name]
-        let data = NSJSONSerialization.dataWithJSONObject(json, options: NSJSONWritingOptions.allZeros, error: nil)!
+        let data = try! NSJSONSerialization.dataWithJSONObject(json, options: NSJSONWritingOptions())
         
         let result = JSON.convertFromData(data)!
         
@@ -118,7 +118,7 @@ class JSONDataTests: XCTestCase {
         
         let result = json.asData()
         
-        let data = NSJSONSerialization.dataWithJSONObject(object, options: NSJSONWritingOptions.allZeros, error: nil)!
+        let data = try! NSJSONSerialization.dataWithJSONObject(object, options: NSJSONWritingOptions())
         XCTAssertEqual(result, data)
     }
     
@@ -128,7 +128,7 @@ class JSONDataTests: XCTestCase {
         
         let result = json.asData()
         
-        let data = NSJSONSerialization.dataWithJSONObject(object, options: NSJSONWritingOptions.allZeros, error: nil)!
+        let data = try! NSJSONSerialization.dataWithJSONObject(object, options: NSJSONWritingOptions())
         XCTAssertEqual(result, data)
     }
     

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import ObjectiveC
 
 public extension UIButton {
     
@@ -70,7 +71,7 @@ public extension UIButton {
             if let fetcher = fetcher {
                 wrapper = ObjectWrapper(value: fetcher)
             }
-            objc_setAssociatedObject(self, &HanekeGlobals.UIKit.SetImageFetcherKey, wrapper, UInt(OBJC_ASSOCIATION_RETAIN_NONATOMIC))
+            objc_setAssociatedObject(self, &HanekeGlobals.UIKit.SetImageFetcherKey, wrapper, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
     
@@ -80,8 +81,8 @@ public extension UIButton {
         if cache.formats[format.name] == nil {
             cache.addFormat(format)
         }
-        var animated = false
-        let fetch = cache.fetch(fetcher: fetcher, formatName: format.name, failure: {[weak self] error in
+//        var animated = false
+        let fetch = cache.fetch(fetcher: fetcher, formatName: format.name, failure: { [weak self](error:NSError?) in
             if let strongSelf = self {
                 if strongSelf.hnk_shouldCancelImageForKey(fetcher.key) { return }
                 
@@ -89,14 +90,14 @@ public extension UIButton {
                 
                 fail?(error)
             }
-            }) { [weak self] image in
+            }) { [weak self] (image:UIImage) in
                 if let strongSelf = self {
                     if strongSelf.hnk_shouldCancelImageForKey(fetcher.key) { return }
                     
                     strongSelf.hnk_setImage(image, state: state, animated: false, success: succeed)
                 }
         }
-        animated = true
+//        animated = true
         return fetch.hasSucceeded
     }
     
@@ -117,7 +118,7 @@ public extension UIButton {
     func hnk_shouldCancelImageForKey(key:String) -> Bool {
         if self.hnk_imageFetcher?.key == key { return false }
         
-        Log.error("Cancelled set image for \(key.lastPathComponent)")
+        Log.debug("Cancelled set image for \(key.lastPathComponent)")
         return true
     }
     
@@ -154,7 +155,7 @@ public extension UIButton {
      
         if didSetImage { return }
         
-        if let placeHolder = placeholder {
+        if let _ = placeholder {
             self.setBackgroundImage(placeholder, forState: state)
         }
     }
@@ -180,7 +181,7 @@ public extension UIButton {
             if let fetcher = fetcher {
                 wrapper = ObjectWrapper(value: fetcher)
             }
-            objc_setAssociatedObject(self, &HanekeGlobals.UIKit.SetBackgroundImageFetcherKey, wrapper, UInt(OBJC_ASSOCIATION_RETAIN_NONATOMIC))
+            objc_setAssociatedObject(self, &HanekeGlobals.UIKit.SetBackgroundImageFetcherKey, wrapper, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
     
@@ -190,8 +191,8 @@ public extension UIButton {
         if cache.formats[format.name] == nil {
             cache.addFormat(format)
         }
-        var animated = false
-        let fetch = cache.fetch(fetcher: fetcher, formatName: format.name, failure: {[weak self] error in
+//        var animated = false
+        let localFetch = cache.fetch(fetcher: fetcher, formatName: format.name, failure: { [weak self](error:NSError?) in
             if let strongSelf = self {
                 if strongSelf.hnk_shouldCancelBackgroundImageForKey(fetcher.key) { return }
                 
@@ -199,15 +200,15 @@ public extension UIButton {
                 
                 fail?(error)
             }
-            }) { [weak self] image in
+            }) { [weak self](image:UIImage) in
                 if let strongSelf = self {
                     if strongSelf.hnk_shouldCancelBackgroundImageForKey(fetcher.key) { return }
                     
                     strongSelf.hnk_setBackgroundImage(image, state: state, animated: false, success: succeed)
                 }
         }
-        animated = true
-        return fetch.hasSucceeded
+//        animated = true
+        return localFetch.hasSucceeded
     }
     
     func hnk_setBackgroundImage(image : UIImage, state : UIControlState, animated : Bool, success succeed : ((UIImage) -> ())?) {
@@ -226,7 +227,7 @@ public extension UIButton {
     func hnk_shouldCancelBackgroundImageForKey(key:String) -> Bool {
         if self.hnk_backgroundImageFetcher?.key == key { return false }
         
-        Log.error("Cancelled set background image for \(key.lastPathComponent)")
+        Log.debug("Cancelled set background image for \(key.lastPathComponent)")
         return true
     }
 }

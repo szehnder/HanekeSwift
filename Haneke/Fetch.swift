@@ -23,9 +23,9 @@ public class Fetch<T> {
     
     public typealias Failer = (NSError?) -> ()
     
-    private var onSuccess : Succeeder?
+    public var onSuccess : Succeeder?
     
-    private var onFailure : Failer?
+    public var onFailure : Failer?
     
     private var state : FetchState<T> = FetchState.Pending
     
@@ -58,7 +58,7 @@ public class Fetch<T> {
         self.onSuccess?(value)
     }
     
-    func fail(_ error : NSError? = nil) {
+    func fail(error : NSError? = nil) {
         self.state = FetchState.Failure(error)
         self.onFailure?(error)
     }
