@@ -118,7 +118,7 @@ public extension UIButton {
     func hnk_shouldCancelImageForKey(key:String) -> Bool {
         if self.hnk_imageFetcher?.key == key { return false }
         
-        Log.debug("Cancelled set image for \(key.lastPathComponent)")
+        Log.debug("Cancelled set image for \((key as NSString).lastPathComponent)")
         return true
     }
     
@@ -126,7 +126,7 @@ public extension UIButton {
         
     public var hnk_backgroundImageFormat : Format<UIImage> {
         let bounds = self.bounds
-            assert(bounds.size.width > 0 && bounds.size.height > 0, "[\(__FUNCTION__)]: UIButton size is zero. Set its frame, call sizeToFit or force layout first. You can also set a custom format with a defined size if you don't want to force layout.") //\(reflect(self).summary) 
+            assert(bounds.size.width > 0 && bounds.size.height > 0, "[\(__FUNCTION__)]: UIButton size is zero. Set its frame, call sizeToFit or force layout first. You can also set a custom format with a defined size if you don't want to force layout.") //\(reflect(self).summary)
             let imageSize = self.backgroundRectForBounds(bounds).size
             
             return HanekeGlobals.UIKit.formatWithSize(imageSize, scaleMode: .Fill)
@@ -227,7 +227,7 @@ public extension UIButton {
     func hnk_shouldCancelBackgroundImageForKey(key:String) -> Bool {
         if self.hnk_backgroundImageFetcher?.key == key { return false }
         
-        Log.debug("Cancelled set background image for \(key.lastPathComponent)")
+        Log.debug("Cancelled set background image for \((key as NSString).lastPathComponent)")
         return true
     }
 }

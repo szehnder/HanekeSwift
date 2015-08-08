@@ -162,13 +162,13 @@ public class Cache<T : DataConvertible where T.Result == T, T : DataRepresentabl
     var cachePath:String {
         get {
             let basePath = DiskCache.basePath()
-            let cachePath = basePath.stringByAppendingPathComponent(self.name)
+            let cachePath = (basePath as NSString).stringByAppendingPathComponent(self.name)
             return cachePath
         }
     }
     
     func formatPath(formatName formatName : String) -> String {
-        let formatPath = self.cachePath.stringByAppendingPathComponent(formatName)
+        let formatPath = (self.cachePath as NSString).stringByAppendingPathComponent(formatName)
         do  {
             try NSFileManager.defaultManager().createDirectoryAtPath(formatPath, withIntermediateDirectories: true, attributes: nil)
         } catch let error as NSError {
