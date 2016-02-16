@@ -28,7 +28,7 @@ extension UIImage {
         }
     }
     
-    func hnk_data(compressionQuality: Float = 1.0) -> NSData! {
+    func hnk_data(compressionQuality compressionQuality: Float = 1.0) -> NSData! {
         let hasAlpha = self.hnk_hasAlpha()
         let data = hasAlpha ? UIImagePNGRepresentation(self) : UIImageJPEGRepresentation(self, CGFloat(compressionQuality))
         return data
@@ -40,11 +40,12 @@ extension UIImage {
         let alphaInfo = CGImageGetAlphaInfo(originalImageRef)
         
         // See: http://stackoverflow.com/questions/23723564/which-cgimagealphainfo-should-we-use
-        let bitmapInfo = originalBitmapInfo
+        var bitmapInfo = originalBitmapInfo
         switch (alphaInfo) {
         case .None:
-            bitmapInfo.union([CGBitmapInfo.AlphaInfoMask])
-//            bitmapInfo = (bitmapInfo)[CGImageAlphaInfo.NoneSkipFirst]
+            let rawBitmapInfoWithoutAlpha = bitmapInfo.rawValue & ~CGBitmapInfo.AlphaInfoMask.rawValue
+            let rawBitmapInfo = rawBitmapInfoWithoutAlpha | CGImageAlphaInfo.NoneSkipFirst.rawValue
+            bitmapInfo = CGBitmapInfo(rawValue: rawBitmapInfo)
         case .PremultipliedFirst, .PremultipliedLast, .NoneSkipFirst, .NoneSkipLast:
             break
         case .Only, .Last, .First: // Unsupported
@@ -53,30 +54,28 @@ extension UIImage {
         
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let pixelSize = CGSizeMake(self.size.width * self.scale, self.size.height * self.scale)
-        
-        //func CGBitmapContextCreate(data: UnsafeMutablePointer<Void>, _ width: Int, _ height: Int, _ bitsPerComponent: Int, _ bytesPerRow: Int, _ space: CGColorSpace!, _ bitmapInfo: UInt32) -> CGContext!
-        if let context = CGBitmapContextCreate(nil, Int(ceil(pixelSize.width)), Int(ceil(pixelSize.height)), CGImageGetBitsPerComponent(originalImageRef) as Int, 0, colorSpace as CGColorSpace!, bitmapInfo.rawValue) {
-            
-            let imageRect = CGRectMake(0, 0, pixelSize.width, pixelSize.height)
-            UIGraphicsPushContext(context)
-            
-            // Flip coordinate system. See: http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
-            CGContextTranslateCTM(context, 0, pixelSize.height)
-            CGContextScaleCTM(context, 1.0, -1.0)
-            
-            // UIImage and drawInRect takes into account image orientation, unlike CGContextDrawImage.
-            self.drawInRect(imageRect)
-            UIGraphicsPopContext()
-            let decompressedImageRef = CGBitmapContextCreateImage(context)
-            
-            let scale = UIScreen.mainScreen().scale
-            let image = UIImage(CGImage: decompressedImageRef!, scale:scale, orientation:UIImageOrientation.Up)
-            
-            return image
-            
-        } else {
+        guard let context = CGBitmapContextCreate(nil, Int(ceil(pixelSize.width)), Int(ceil(pixelSize.height)), CGImageGetBitsPerComponent(originalImageRef), 0, colorSpace, bitmapInfo.rawValue) else {
             return self
         }
+
+        let imageRect = CGRectMake(0, 0, pixelSize.width, pixelSize.height)
+        UIGraphicsPushContext(context)
+        
+        // Flip coordinate system. See: http://stackoverflow.com/questions/506622/cgcontextdrawimage-draws-image-upside-down-when-passed-uiimage-cgimage
+        CGContextTranslateCTM(context, 0, pixelSize.height)
+        CGContextScaleCTM(context, 1.0, -1.0)
+        
+        // UIImage and drawInRect takes into account image orientation, unlike CGContextDrawImage.
+        self.drawInRect(imageRect)
+        UIGraphicsPopContext()
+        
+        guard let decompressedImageRef = CGBitmapContextCreateImage(context) else {
+            return self
+        }
+        
+        let scale = UIScreen.mainScreen().scale
+        let image = UIImage(CGImage: decompressedImageRef, scale:scale, orientation:UIImageOrientation.Up)
+        return image
     }
-    
+
 }
